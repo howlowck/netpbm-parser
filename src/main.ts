@@ -43,7 +43,7 @@ export const calcStarts = (perRow: number, mag: number, projectedStart: number):
   const result = []
   for (let row = 0; row < mag; row++) {
     for (let col = 0; col < mag; col++) {
-      result.push(projectedStart + row * perRow + col * 4) // 3 + 0, 3 + 1
+      result.push(projectedStart + row * perRow + col * 4)
     }
   }
   return result
@@ -94,8 +94,14 @@ const formatOutput = (doc: Doc, rgba: Uint8ClampedArray, mag: number): Result =>
   }
 }
 
+const stripComments = (inputStr: string): string => {
+  return inputStr.replace(/#.+$\s/gm, '')
+}
+
 export const parse = (inputStr: string, mag: number): Result => {
-  const doc = parseToParts(inputStr)
+  const cleanStr = stripComments(inputStr)
+  console.log(cleanStr)
+  const doc = parseToParts(cleanStr)
   const rgba = parseData(doc, mag)
   return formatOutput(doc, rgba, mag)
 }
