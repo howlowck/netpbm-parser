@@ -2,3 +2,4 @@ notes.txt
 .cache
 node_modules
 dist
+lib
