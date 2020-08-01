@@ -7,7 +7,8 @@
     "dev": "parcel example/index.html",
     "build": "parcel build example/index.html",
     "compile": "tsc -p tsconfig.dist.json",
-    "test": "jest"
+    "test": "jest",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [],
   "author": "Hao Luo",
