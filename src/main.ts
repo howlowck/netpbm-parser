@@ -12,6 +12,7 @@ interface Doc {
   }
   max: number
   rawData: string
+  parsedData: number[]
 }
 
 type DocHeader = Pick<Doc, 'type'|'dimension'>
@@ -85,6 +86,17 @@ const parseP3 = (inputString: string, imgHeader: DocHeader): Doc => {
   const width = +widthStr
   const height = +heightStr
   const max = +maxStr
+  const parsedData: number[] = rawData.split(/\s/ms).reduce((prev: number[], curr: string) => {
+    if (curr === '' || curr === ' ') {
+      return prev
+    }
+    const value = +curr
+    if (isNaN(value)) {
+      return prev
+    }
+    prev.push(value)
+    return prev
+  }, [])
 
   return {
     type,
@@ -93,7 +105,8 @@ const parseP3 = (inputString: string, imgHeader: DocHeader): Doc => {
       height
     },
     max,
-    rawData
+    rawData,
+    parsedData
   }
 }
 
@@ -115,19 +128,16 @@ export const calcProjectedStart = (unitDocWidth: number, mag: number, i: number)
 }
 
 const parseData = (doc: Doc, mag: number): Uint8ClampedArray => {
-  const { dimension, max, rawData } = doc
+  const { dimension, max, parsedData } = doc
   const { width, height } = dimension
   const size = (width * mag) * (height * mag) * 4
-  const array = rawData.split(/\s/ms).filter(_ => _ !== '' && _ !== ' ')
-  return array.reduce((prev, curr, i, array) => {
+
+  return parsedData.reduce((prev, curr, i, array) => {
     if (i % 3 === 0) {
-      const r = 255 * (+array[i] / max)
-      const g = 255 * (+array[i + 1] / max)
-      const b = 255 * (+array[i + 2] / max)
+      const r = 255 * (array[i] / max)
+      const g = 255 * (array[i + 1] / max)
+      const b = 255 * (array[i + 2] / max)
       const a = 255
-      if (isNaN(r) || isNaN(g) || isNaN(b)) {
-        return prev
-      }
       const projectedStart = calcProjectedStart(width * 3, mag, i)
       const projected = calcStarts(width * mag * 4, mag, projectedStart)
       projected.forEach((projectedStart) => {
@@ -148,6 +158,7 @@ const formatOutput = (doc: Doc, rgba: Uint8ClampedArray, mag: number): Result =>
     rawData: doc.rawData,
     max: doc.max,
     type: doc.type,
+    parsedData: doc.parsedData,
     rgba
   }
 }
@@ -158,9 +169,9 @@ export const stripComments = (inputStr: string): string => {
 
 export const parse = (inputStr: string, mag: number): Result => {
   const cleanStr = stripComments(inputStr)
-  console.log(cleanStr)
   const header = getHeader(cleanStr)
   const doc = parseImage(cleanStr, header)
+  console.log(doc)
   const rgba = parseData(doc, mag)
   return formatOutput(doc, rgba, mag)
 }
