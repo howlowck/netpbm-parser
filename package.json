@@ -1,5 +1,5 @@
 {
-  "name": "ppm-viewer",
+  "name": "netpbm-parser",
   "version": "1.0.0",
   "description": "",
   "main": "lib/main.js",
@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "keywords": [],
-  "author": "",
+  "author": "Hao Luo",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.4",
