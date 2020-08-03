@@ -10,7 +10,7 @@ on:
       - v*.*.*
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,10 +19,9 @@ jobs:
           node-version: 12
       - run: npm ci
       - run: npm test
-      - run: npm run compile
 
   publish-npm:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -31,6 +30,7 @@ jobs:
           node-version: 12
           registry-url: https://registry.npmjs.org/
       - run: npm ci
+      - run: npm run compile
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
