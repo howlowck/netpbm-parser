@@ -21,11 +21,11 @@ jobs:
 
   npm-version:
     needs: build
-    if: ${{ env.INPUT_VERSION_TYPE == 'major' || env.INPUT_VERSION_TYPE == 'minor' || env.INPUT_VERSION_TYPE == 'patch'}}
+    if: ${{ github.event.inputs.version_type == 'major' || github.event.inputs.version_type == 'minor' || github.event.inputs.version_type == 'patch'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - run: |
           git config user.name "Hao"
           git config user.email "haowebdev@gmail.com"
-      - run: npm version ${{env.INPUT_VERSION_TYPE}}
+      - run: npm version ${{github.event.inputs.version_type}}
