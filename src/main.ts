@@ -32,7 +32,7 @@ const matchType = (typeStr: string): ImageType => {
     return ImageType.P3
   }
 
-  throw new Error(`The type string "${typeStr}" are not the supported values: "P1", "P2", or "P3".`)
+  throw new Error(`The type string "${typeStr}" is not any of the supported values: "P1", "P2", or "P3".`)
 }
 
 export const getHeader = (inputString: string): DocHeader => {
@@ -55,48 +55,58 @@ export const getHeader = (inputString: string): DocHeader => {
   }
 }
 
-const parseImage = (imageString: string, header: DocHeader): Doc => {
-  if (header.type === ImageType.P1) {
-    throw new Error('Parsing P1 Image is not implemented yet')
+export const parseImage = (inputString: string, imgHeader: DocHeader): Doc => {
+  const { type, dimension: { width, height } } = imgHeader
+  let docMatches: RegExpMatchArray | null
+  if (type === ImageType.P2 || type === ImageType.P3) {
+    docMatches = inputString.match(/(\w+\s+\w+\s+\w+\s+\w+)\s+(.*)/ms)
+  } else {
+    docMatches = inputString.match(/(\w+\s+\w+\s+\w+)\s+(.*)/ms)
   }
-
-  if (header.type === ImageType.P2) {
-    throw new Error('Parsing P2 Image is not implemented yet')
-  }
-
-  if (header.type === ImageType.P3) {
-    return parseP3(imageString, header)
-  }
-
-  throw new Error('cannot parse this image type')
-}
-
-const parseP3 = (inputString: string, imgHeader: DocHeader): Doc => {
-  const docMatches = inputString.match(/(\w+\s+\w+\s+\w+\s+\w+)\s+(.*)/ms)
   if (docMatches === null) {
     throw new Error('the content is not formatted correct.')
   }
   const [, header, rawData] = docMatches
-  const headerPartsMatches = header.match(/(\w+)\s+(\w+)\s+(\w+)\s+(\w+)/ms)
-  if (headerPartsMatches === null) {
-    throw new Error('the header is not formatted correct.')
+
+  let max: number
+  if (type === ImageType.P2 || type === ImageType.P3) {
+    const headerPartsMatches = header.match(/(\w+)\s+(\w+)\s+(\w+)\s+(\w+)/ms)
+    if (headerPartsMatches === null) {
+      throw new Error('the header is not formatted correctly.')
+    }
+    const [,,,, maxStr] = headerPartsMatches
+    max = +maxStr
+  } else {
+    max = 1
   }
-  const [, typeStr, widthStr, heightStr, maxStr] = headerPartsMatches
-  const type = matchType(typeStr)
-  const width = +widthStr
-  const height = +heightStr
-  const max = +maxStr
-  const parsedData: number[] = rawData.split(/\s/ms).reduce((prev: number[], curr: string) => {
-    if (curr === '' || curr === ' ') {
+
+  let parsedData: number[]
+
+  if (type === ImageType.P2 || type === ImageType.P3) {
+    parsedData = rawData.split(/\s/ms).reduce((prev: number[], curr: string) => {
+      if (curr.length === 0 || Array.isArray(curr.match(/^\s+$/ms))) {
+        return prev
+      }
+      const value = +curr
+      if (isNaN(value)) {
+        return prev
+      }
+      prev.push(value)
       return prev
-    }
-    const value = +curr
-    if (isNaN(value)) {
+    }, [])
+  } else {
+    parsedData = rawData.split('').reduce((prev: number[], curr: string) => {
+      if (curr.length === 0 || Array.isArray(curr.match(/^\s+$/ms))) {
+        return prev
+      }
+      const value = +curr
+      if (isNaN(value)) {
+        return prev
+      }
+      prev.push(value)
       return prev
-    }
-    prev.push(value)
-    return prev
-  }, [])
+    }, [])
+  }
 
   return {
     type,
@@ -127,10 +137,32 @@ export const calcProjectedStart = (unitDocWidth: number, mag: number, i: number)
   return row * perRow + col * 4
 }
 
+export const calcSingleWidthStart = (unitDocWidth: number, mag: number, i: number): number => {
+  const row = Math.floor(i / unitDocWidth) * mag
+  const col = (i % unitDocWidth) * mag
+  const perRow = unitDocWidth * 4 * mag
+  return row * perRow + col * 4
+}
+
 const parseData = (doc: Doc, mag: number): Uint8ClampedArray => {
-  const { dimension, max, parsedData } = doc
+  const { type, dimension, max, parsedData } = doc
   const { width, height } = dimension
   const size = (width * mag) * (height * mag) * 4
+
+  if (type === ImageType.P1 || type === ImageType.P2) {
+    return parsedData.reduce((prev, curr, i) => {
+      const r = 255 * (curr / max)
+      const g = r
+      const b = r
+      const a = 255
+      const projectedStart = calcSingleWidthStart(width, mag, i)
+      const projected = calcStarts(width * mag * 4, mag, projectedStart)
+      projected.forEach((projectedStart) => {
+        prev.set([r, g, b, a], projectedStart)
+      })
+      return prev
+    }, new Uint8ClampedArray(size))
+  }
 
   return parsedData.reduce((prev, curr, i, array) => {
     if (i % 3 === 0) {
