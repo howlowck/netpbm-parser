@@ -21,7 +21,7 @@ jobs:
 
   npm-version:
     needs: build
-    if: ${{ contains(['major', 'minor', 'patch'], env.INPUT_VERSION_TYPE) }}
+    if: ${{ env.INPUT_VERSION_TYPE == 'major' || env.INPUT_VERSION_TYPE == 'minor' || env.INPUT_VERSION_TYPE == 'patch'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
